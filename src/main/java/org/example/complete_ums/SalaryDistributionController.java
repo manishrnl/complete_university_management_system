@@ -1,0 +1,322 @@
+package org.example.complete_ums;
+
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import org.example.complete_ums.CommonTable.LibrariansTable;
+import org.example.complete_ums.Databases.DatabaseConnection;
+import org.example.complete_ums.ToolsClasses.AlertManager;
+
+import java.net.URL;
+import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.ResourceBundle;
+
+public class SalaryDistributionController implements Initializable {
+
+    @FXML private Button calculateButton, saveButton, cancelButton;
+    @FXML private TextField employeeNameField, employeeRoleField, baseSalaryField, totalDaysField, presentDaysField, unpaidLeaveDaysField,
+            attendanceDeductionField, grossAmountField, totalDeductionsField, netSalaryField, remarksField;
+
+    @FXML private TableColumn<LibrariansTable, String> colPan, colUserName, colFullName, colRoleType;
+    @FXML private TableColumn<LibrariansTable, Long> colAadhar, colMobile;
+    @FXML private TableColumn<LibrariansTable, Integer> colUserId;
+    @FXML private TableView<LibrariansTable> salaryDeuctionsTable;
+
+    private Connection connection;
+    private LibrariansTable selectedEmployee;
+
+    public SalaryDistributionController() throws SQLException {
+        this.connection = DatabaseConnection.getConnection();
+    }
+
+    @Override
+    public void initialize(URL url, ResourceBundle resourceBundle) {
+        colPan.setCellValueFactory(new PropertyValueFactory<>("colPan"));
+        colFullName.setCellValueFactory(new PropertyValueFactory<>("colFullName"));
+        colAadhar.setCellValueFactory(new PropertyValueFactory<>("colAadhar"));
+        colMobile.setCellValueFactory(new PropertyValueFactory<>("colMobile"));
+        colUserId.setCellValueFactory(new PropertyValueFactory<>("colUserId"));
+        colUserName.setCellValueFactory(new PropertyValueFactory<>("colUserName"));
+        colRoleType.setCellValueFactory(new PropertyValueFactory<>("colRoleType"));
+
+        loadLibrariansTable();
+
+        // This is the new row factory logic
+        salaryDeuctionsTable.setRowFactory(tv -> new TableRow<LibrariansTable>() {
+            @Override
+            protected void updateItem(LibrariansTable item, boolean empty) {
+                super.updateItem(item, empty);
+                if (item == null || empty) {
+                    setStyle("");
+                } else {
+                    try {
+                        if (isSalaryPaidForCurrentMonth(item.getColUserId())) {
+                            setStyle("-fx-background-color: #88ea77;"); // Green for paid salary
+                        } else if (item.getColUserId() == (selectedEmployee != null ? selectedEmployee.getColUserId() : -1)) {
+                            setStyle("-fx-background-color: #fddb3a;"); // Yellow for selected employee
+                        } else {
+                            setStyle("");
+                        }
+                    } catch (SQLException e) {
+                        e.printStackTrace();
+                        setStyle("");
+                    }
+                }
+            }
+        });
+
+        salaryDeuctionsTable.setOnMouseClicked(event -> {
+            selectedEmployee = salaryDeuctionsTable.getSelectionModel().getSelectedItem();
+            if (selectedEmployee != null) {
+                clearFields();
+                LocalDate previousMonthDate = LocalDate.now().minusMonths(1);
+
+                employeeNameField.setText(selectedEmployee.getColFullName());
+                employeeRoleField.setText(selectedEmployee.getColRoleType());
+
+                setUIState(true);
+                fetchEmployeeSalaryAndAttendance(selectedEmployee.getColUserId(), previousMonthDate);
+            }
+        });
+
+        setUIState(false);
+    }
+
+    /**
+     * Checks if the salary for the current month has already been paid for a given user.
+     */
+    private boolean isSalaryPaidForCurrentMonth(int userId) throws SQLException {
+        LocalDate currentDate = LocalDate.now();
+        String query = "SELECT COUNT(*) FROM Salary_Payments WHERE User_Id = ? AND Salary_Month = ? AND Salary_Year = ? AND Payment_Status = 'Paid'";
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setInt(1, userId);
+            ps.setInt(2, currentDate.getMonthValue());
+            ps.setInt(3, currentDate.getYear());
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+        }
+        return false;
+    }
+
+    private void loadLibrariansTable() {
+        ObservableList<LibrariansTable> tableData = FXCollections.observableArrayList();
+        String query = "SELECT u.User_Id, u.Role, u.Mobile, u.Pan, u.Aadhar, a.UserName, u.First_Name, u.Last_Name FROM Users u " +
+                "JOIN Authentication a ON u.User_Id = a.User_Id " +
+                "WHERE u.Role != 'Student'";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+            ResultSet resultSet = pstmt.executeQuery();
+            while (resultSet.next()) {
+                String firstName = resultSet.getString("First_Name");
+                String lastName = resultSet.getString("Last_Name");
+                int userID = resultSet.getInt("User_Id");
+                long mobile = resultSet.getLong("Mobile");
+                String pan = resultSet.getString("Pan");
+                long aadhar = resultSet.getLong("Aadhar");
+                String userName = resultSet.getString("UserName");
+                String role = resultSet.getString("Role");
+                LibrariansTable table = new LibrariansTable(pan, userName, firstName + " " + lastName, aadhar, mobile, userID, role);
+                tableData.add(table);
+            }
+            salaryDeuctionsTable.setItems(tableData);
+        } catch (SQLException e) {
+            AlertManager.showAlert(Alert.AlertType.ERROR, "Data Load Error", "Failed to load employee data.", "Could not load data due to a technical issue: " + e.getMessage());
+            throw new RuntimeException("Error loading employee data", e);
+        }
+    }
+
+    private void fetchEmployeeSalaryAndAttendance(int userId, LocalDate selectedDate) {
+        YearMonth yearMonth = YearMonth.from(selectedDate);
+        int year = yearMonth.getYear();
+        int month = yearMonth.getMonthValue();
+        int daysInMonth = yearMonth.lengthOfMonth();
+
+        String query = "SELECT COALESCE(T.Salary, S.Salary, L.Salary, ACC.Salary) AS BaseSalary, " +
+                "    COUNT(CASE WHEN A.Status IN ('Present', 'Late', 'Half Day','S.L','C.L') THEN 1 END) AS PaidDays, " +
+                "    COUNT(CASE WHEN A.Status IN ('Absent', 'Leave') THEN 1 END) AS UnpaidLeaveDays " +
+                "FROM Users U " +
+                "LEFT JOIN Teachers T ON U.User_Id = T.User_Id AND U.Role = 'Teacher' " +
+                "LEFT JOIN Staffs S ON U.User_Id = S.User_Id AND U.Role = 'Staff' " +
+                "LEFT JOIN Admins AD ON U.User_Id = AD.User_Id AND U.Role = 'Admin' " +
+                "LEFT JOIN Accountants ACC ON U.User_Id = ACC.User_Id AND U.Role = 'Accountant' " +
+                "LEFT JOIN Librarians L ON U.User_Id = L.User_Id AND U.Role = 'Librarian' " +
+                "LEFT JOIN Attendances A ON U.User_Id = A.User_Id AND YEAR(A.Attendance_Date) = ? AND MONTH(A.Attendance_Date) = ? " +
+                "WHERE U.User_Id = ? " +
+                "GROUP BY U.User_Id";
+
+        String holidayQuery = "SELECT COUNT(*) AS Holidays FROM Events WHERE Event_Type = 'Holiday' AND YEAR(Event_Date) = ? AND MONTH(Event_Date) = ?";
+
+        try (PreparedStatement ps = connection.prepareStatement(query);
+             PreparedStatement holidayPs = connection.prepareStatement(holidayQuery)) {
+
+            ps.setInt(1, year);
+            ps.setInt(2, month);
+            ps.setInt(3, userId);
+
+            holidayPs.setInt(1, year);
+            holidayPs.setInt(2, month);
+
+            ResultSet rs = ps.executeQuery();
+            ResultSet holidayRs = holidayPs.executeQuery();
+
+            if (rs.next()) {
+                double baseSalary = rs.getDouble("BaseSalary");
+                long paidDays = rs.getLong("PaidDays");
+                int unpaidLeaveDays = rs.getInt("UnpaidLeaveDays");
+                long holidays = 0;
+                if(holidayRs.next()){
+                    holidays = holidayRs.getLong("Holidays");
+                }
+
+                baseSalaryField.setText(String.format("%.2f", baseSalary));
+                totalDaysField.setText(String.valueOf(daysInMonth));
+                presentDaysField.setText(String.valueOf(paidDays + holidays));
+                unpaidLeaveDaysField.setText(String.valueOf(unpaidLeaveDays));
+
+                // The key calculation change
+                double totalDeductionFromAttendance;
+                double bonusAmount = 1000.00; // As per your logic
+                double deductionRate = 0.03333; // 3.333%
+
+                if (unpaidLeaveDays == 0) {
+                    remarksField.setText("100 % Attendance. Congrats. Bonus Applied of 1,000 for this month");
+                    totalDeductionFromAttendance = -bonusAmount;
+                } else {
+                    totalDeductionFromAttendance = baseSalary * deductionRate * unpaidLeaveDays;
+                    remarksField.setText("You were absent for " + unpaidLeaveDays + " Days. No Bonus for this month");
+                }
+
+                attendanceDeductionField.setText(String.format("%.2f", totalDeductionFromAttendance));
+                totalDeductionsField.setText("0.00"); // Resetting deductions for manual input
+            } else {
+                AlertManager.showAlert(Alert.AlertType.ERROR, "Data Error", "Could not find salary data.", "Failed to fetch salary data for user ID: " + userId);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            AlertManager.showAlert(Alert.AlertType.ERROR, "Query Error", "Failed to fetch salary and attendance data.", "Failed to execute database query: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void calculateFinalSalary() {
+        try {
+            double baseSalary = Double.parseDouble(baseSalaryField.getText());
+            double attendanceDeduction = Double.parseDouble(attendanceDeductionField.getText());
+
+            double totalDeductions = 0.0;
+            if (totalDeductionsField.getText() != null && !totalDeductionsField.getText().trim().isEmpty()) {
+                totalDeductions = Double.parseDouble(totalDeductionsField.getText());
+            }
+
+            double grossAmount = baseSalary + attendanceDeduction; // Bonus is added, deduction is subtracted
+            grossAmountField.setText(String.format("%.2f", grossAmount));
+
+            double netSalary = grossAmount - totalDeductions;
+            netSalaryField.setText(String.format("%.2f", netSalary));
+
+        } catch (NumberFormatException e) {
+            AlertManager.showAlert(Alert.AlertType.ERROR, "Calculation Error", "Please ensure all number fields are correctly loaded.", "An invalid number format was encountered during calculation: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void saveAndPay() {
+        try {
+            if (selectedEmployee == null || grossAmountField.getText().isEmpty() || netSalaryField.getText().isEmpty()) {
+                AlertManager.showAlert(Alert.AlertType.WARNING, "Missing Data", "Please select an employee and calculate salary first.", "You must select an employee and calculate the salary before saving.");
+                return;
+            }
+
+            double grossAmount = Double.parseDouble(grossAmountField.getText());
+
+            String deductText = totalDeductionsField.getText();
+            double totalDeductions = 0.0;
+            if (deductText != null && !deductText.trim().isEmpty()) {
+                totalDeductions = Double.parseDouble(deductText);
+            }
+
+            double netAmountPaid = Double.parseDouble(netSalaryField.getText());
+            String remarks = remarksField.getText();
+            if (remarks == null || remarks.trim().isEmpty()) {
+                remarks = "No Remarks";
+            }
+            LocalDate paymentDate = LocalDate.now();
+            int month = paymentDate.getMonthValue();
+            int year = paymentDate.getYear();
+            LocalDateTime now = LocalDateTime.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+            String formattedDateTime = now.format(formatter);
+
+            String paymentQuery = "INSERT INTO Salary_Payments (User_Id, Salary_Month, " +
+                    "Salary_Year, Gross_Amount, Total_Deductions, Net_Amount_Paid, " +
+                    "Payment_Date, Payment_Status, Remarks,Transaction_Id) VALUES (?, ?, ?, " +
+                    "?, ?, ?, ?, 'Paid', ?,?)";
+            try (PreparedStatement ps = connection.prepareStatement(paymentQuery, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, selectedEmployee.getColUserId());
+                ps.setInt(2, month);
+                ps.setInt(3, year);
+                ps.setDouble(4, grossAmount);
+                ps.setDouble(5, totalDeductions);
+                ps.setDouble(6, netAmountPaid);
+                ps.setDate(7, Date.valueOf(paymentDate));
+                ps.setString(8, remarks);
+                ps.setString(9, formattedDateTime);
+                ps.executeUpdate();
+            }
+
+            // Reload the table to show the green color for the newly paid employee
+            Platform.runLater(this::loadLibrariansTable);
+
+            AlertManager.showAlert(Alert.AlertType.INFORMATION, "Success", "Salary distributed and recorded successfully.",  "Salary payment for " + selectedEmployee.getColFullName() + " has been successfully recorded.");
+            clearFields();
+
+        } catch (SQLException | NumberFormatException e) {
+            e.printStackTrace();
+            AlertManager.showAlert(Alert.AlertType.ERROR, "Save Error", "Failed to save salary data to the database.", "A database or number format error occurred while saving: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void cancel() {
+        clearFields();
+    }
+
+    private void clearFields() {
+        employeeNameField.clear();
+        employeeRoleField.clear();
+        baseSalaryField.clear();
+        totalDaysField.clear();
+        presentDaysField.clear();
+        unpaidLeaveDaysField.clear();
+        attendanceDeductionField.clear();
+        grossAmountField.clear();
+        totalDeductionsField.clear();
+        netSalaryField.clear();
+        if (remarksField != null) {
+            remarksField.clear();
+        }
+        salaryDeuctionsTable.getSelectionModel().clearSelection();
+        setUIState(false);
+    }
+
+    private void setUIState(boolean loaded) {
+        if(loaded){
+            calculateButton.setDisable(false);
+            saveButton.setDisable(false);
+        } else {
+            calculateButton.setDisable(true);
+            saveButton.setDisable(true);
+        }
+        cancelButton.setDisable(false);
+    }
+}
