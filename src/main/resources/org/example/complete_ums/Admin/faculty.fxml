@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox prefHeight="1000.0" prefWidth="1910.0" spacing="25.0" styleClass="VBOX" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.complete_ums.Admin.Faculty">
+    <padding>
+        <Insets bottom="20" left="20" right="20" top="20" />
+    </padding>
+    <HBox alignment="CENTER_LEFT" prefHeight="43.0" prefWidth="1890.0" spacing="20" styleClass="HBOX-Nav-Bar">
+        <Label prefHeight="27.0" prefWidth="349.0" styleClass="Heading" text="Faculty Dashboard" />
+        <ComboBox fx:id="filterComboBox" prefHeight="43.0" prefWidth="426.0" promptText="Filter by Type" styleClass="searchable-combo-box" />
+        <ComboBox fx:id="sortComboBox" prefHeight="43.0" prefWidth="534.0" promptText="Sort by..." styleClass="searchable-combo-box" />
+        <HBox alignment="CENTER_RIGHT" prefHeight="43.0" prefWidth="563.0" HBox.hgrow="ALWAYS">
+            <TextField fx:id="searchField" prefHeight="44.0" prefWidth="594.0" promptText="Search Faculty..." styleClass="grid-pane-text-field" />
+        </HBox>
+    </HBox>
+
+    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+        <content>
+            <GridPane fx:id="facultyGrid" alignment="CENTER" hgap="20" styleClass="back-ground" vgap="20">
+            </GridPane>
+        </content>
+    </ScrollPane>
+</VBox>

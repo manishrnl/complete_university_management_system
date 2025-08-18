@@ -1,0 +1,48 @@
+Remove-Item -Recurse -Force .git
+git init
+git add .
+git commit -m "Version 2025.0.23"
+git branch -M main
+git remote add origin https://github.com/manishrnl/complete_university_management_system.git
+git push origin main --force
+
+
+wmic path Win32_VideoController get CurrentHorizontalResolution,CurrentVerticalResolution
+CurrentHorizontalResolution  CurrentVerticalResolution
+1920                         1200
+
+
+
+
+
+To count all Lines for project ,paste script inside powershell inside root folder
+sample Input ->
+$files = Get-ChildItem -Recurse -Include *.java, *.fxml, *.css src\main
+$allLines     = 0
+$commentLines = 0
+foreach ($file in $files) {
+    $lines = Get-Content $file
+    $allLines += $lines.Count
+    foreach ($line in $lines) {
+        $trim = $line.Trim()
+        if ($trim -match '^//' -or              # Java single-line comment
+            $trim -match '^/\*' -or             # Start of block comment
+            $trim -match '^\*' -or              # Inside block comment
+            $trim -match '^\*/' -or             # End of block comment
+            $trim -match '^<!--' -or            # XML/FXML comment
+            $trim -match '^-->' -or             # End XML comment
+            $trim -match '^\*\/'                # Closing CSS/Java comment
+        ) {
+            $commentLines++
+        }
+    }
+}
+Write-Host "Total Lines Including Comments  : $allLines"
+Write-Host "Comment Lines : $commentLines"
+Write-Host "Code Lines Excluding Comments   : $($allLines - $commentLines)"
+
+
+sample Output ->
+Total Lines Including Comments  : 30116
+Comment Lines : 693
+Code Lines Excluding Comments   : 29423
