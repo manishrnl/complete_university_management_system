@@ -1,6 +1,7 @@
 # 🏦 University Management System ( Approx Projects length : 30,000 Lines)
 
-# This project is completed in 2 month of rigorous working .
+## The project was completed after two months of rigorous effort.
+
 [![Java](https://img.shields.io/badge/Java-Backend-red.svg?style=for-the-badge)](https://www.java.com/)
 [![Database](https://img.shields.io/badge/Database-MySQL-yellow.svg?style=for-the-badge)](https://www.mysql.com/)
 [![Security](https://img.shields.io/badge/Feature-Secure%20Login-brightgreen?style=for-the-badge)](https://owasp.org/www-project-top-ten/)
