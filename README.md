@@ -1,6 +1,6 @@
 # 🏦 University Management System ( Approx Projects length : 30,000 Lines)
 
-## The project was completed after two months of rigorous effort. Also the folder is not well structured & is not responsive. It is made as per my laptops screen of size 16". I'll inprove it in a more precise way in future update.
+## The project was completed after two months of rigorous effort. Also the folder is not well structured & is not responsive. It is made as per my laptops screen of size 16". I'll improve it in a more precise way in future update.
 
 [![Java](https://img.shields.io/badge/Java-Backend-red.svg?style=for-the-badge)](https://www.java.com/)
 [![Database](https://img.shields.io/badge/Database-MySQL-yellow.svg?style=for-the-badge)](https://www.mysql.com/)
@@ -119,10 +119,8 @@
 
 - Configure your DB credentials inside the Java project.
 
-- Add mysql-connector-java-8.0.28.jar inside folder
-  Library/mysql-connector-java-8.0.28.jar to the Project Structure to connect database.It is
-  inside folder
-  Library
+- Add all Library which is binded inside folder
+  Libraries  used in Projects/ to the Project Structure so as to use libraries that is needed in this project.
 
 - Install Maven dependencies by running the following command in the terminal:
 
@@ -152,7 +150,7 @@
 
 - **Manish Kumar**
 - 📧 manishrajrnl1@gmail.com
-- 🔗 GitHub Profile
+- 🔗(https://github.com/manishrnl/complete_university_management_system.git)[GitHub Profile]
 
 ## 📂 Project Structure
 
