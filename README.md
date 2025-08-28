@@ -150,7 +150,7 @@
 
 - **Manish Kumar**
 - 📧 manishrajrnl1@gmail.com
-- 🔗(https://github.com/manishrnl/complete_university_management_system.git)[GitHub Profile]
+- 🔗 [Github Profile](https://github.com/manishrnl/complete_university_management_system.git))
 
 ## 📂 Project Structure
 
