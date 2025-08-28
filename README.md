@@ -1,6 +1,6 @@
 # 🏦 University Management System ( Approx Projects length : 30,000 Lines)
 
-## The project was completed after two months of rigorous effort. Also the folder is not well structured . I'll structure it in a more precise way in future.
+## The project was completed after two months of rigorous effort. Also the folder is not well structured & is not responsive. It is made as per my laptops screen of size 16". I'll inprove it in a more precise way in future update.
 
 [![Java](https://img.shields.io/badge/Java-Backend-red.svg?style=for-the-badge)](https://www.java.com/)
 [![Database](https://img.shields.io/badge/Database-MySQL-yellow.svg?style=for-the-badge)](https://www.mysql.com/)
