@@ -1,0 +1,41 @@
+JAVA
+Main = 4668
+Accountants = 2024
+Admin = 4770
+Common Table = 1687
+Databases = 408
+Java StyleSheet  = 263
+Librarians = 2219
+Staffs = 1020
+Students = 1749
+Teachers = 1096
+ToolsClasses = 738
+
+
+Resources
+Main = 1734
+Accountants = 595
+Admin = 2273
+Librarians = 897
+Staffs = 436
+Students = 1133
+CSS = 1815
+Teachers = 465
+
+total Java lines = 20 , 642
+total FXML lines = 9 , 348
+
+Total Project lines = 29 , 990
+
+
+OR USE COMMANDS TO COUNT TOTAL LINES
+Get-ChildItem -Recurse -Include *.java, *.fxml, *.css src\main |Get-Content |Measure-Object -Line
+
+Demo Input->
+ PS C:\Users\MANISH\Downloads\Complete_UMS> Get-ChildItem -Recurse -Include *.java, *.fxml, *.css src\main |Get-Content |Measure-Object -Line
+
+ output ->
+ Lines Words Characters Property
+ ----- ----- ---------- --------
+ 26418
+
